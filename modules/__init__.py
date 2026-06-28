@@ -1,17 +1,31 @@
-# Import the main functions/classes from each module to make them accessible
-from .citation_remover import remove_citations
-from .nepal_generator import generate_nepal_text
-from .int_generator import generate_int_text
-from .mixture_generator import generate_mixture_text
-from .plag_remover import remove_plagiarism
-from .plag_checker import check_plagiarism
+# modules/__init__.py
 
-# Define what is exported when someone does: from modules import *
+# 1. Citation and Reference Remover
+from .citation_remover import clean_document_citations
+
+# 2. International Q1 Citation Generator
+from .int_generator import generate_international_citations
+
+# 3. 50/50 Regional/International Mixture Citation Generator
+from .mixture_generator import generate_mixture_citations
+
+# 4. Nepalese Regional Citation Generator
+from .nepal_citation_generator import generate_nepal_citations
+
+# 5. Plagiarism & AI Integrity Checker
+from .plag_checker import run_document_integrity_check, AIDetectorEngine
+
+# 6. Deep Learning Paraphraser
+from .plag_remover import run_paraphrase_document, ParaphraserEngine
+
+# Expose these utilities to the application level
 __all__ = [
-    "remove_citations",
-    "generate_nepal_text",
-    "generate_int_text",
-    "generate_mixture_text",
-    "remove_plagiarism",
-    "check_plagiarism",
+    "clean_document_citations",
+    "generate_international_citations",
+    "generate_mixture_citations",
+    "generate_nepal_citations",
+    "run_document_integrity_check",
+    "AIDetectorEngine",
+    "run_paraphrase_document",
+    "ParaphraserEngine",
 ]
