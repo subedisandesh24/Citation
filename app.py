@@ -7,14 +7,30 @@ import re
 import time
 import io
 
-# --- Page Configuration ---
+# --- Page & Layout Settings ---
 st.set_page_config(
-    page_title="APA 7th Academic Citation & Reference Engine",
-    page_icon="🎓",
+    page_title="Academic Document Assistant Portal",
+    page_icon="📚",
     layout="wide"
 )
 
-# --- Strict APA 7th Edition Formatting & Verification Engine ---
+# --- NAVIGATION SIDEBAR ---
+st.sidebar.title("🛠️ Tools & Utility Portal")
+app_mode = st.sidebar.radio(
+    "Select an Assistant Tool:",
+    [
+        "1. Citation Remover",
+        "2. Citation Generator (Nepalese Focus)",
+        "3. Citation Generator (International Focus)",
+        "4. 50/50 Context Mixture Generator",
+        "5. Plagiarism Remover",
+        "6. Plagiarism & AI Checker"
+    ]
+)
+
+# ==========================================
+# TOOL 2: NEPALESE CITATION ENGINE LOGIC
+# ==========================================
 
 class StrictAPA50CitationEngine:
     def __init__(self, email="colab-citations@example.com"):
@@ -23,7 +39,6 @@ class StrictAPA50CitationEngine:
         self.cited_dois = set()
 
     def search_crossref_multi(self, query):
-        """Searches Crossref and returns up to 10 candidate papers."""
         clean_query = query.strip()
         if clean_query in self.metadata_cache:
             return self.metadata_cache[clean_query]
@@ -42,7 +57,6 @@ class StrictAPA50CitationEngine:
         return []
 
     def validate_and_extract_metadata(self, item):
-        """Validates paper metadata strictly according to APA 7th Edition requirements."""
         if not item:
             return False, {"reason": "Empty payload"}
             
@@ -115,13 +129,12 @@ class StrictAPA50CitationEngine:
             details["source_status"] = "✓ Present"
             details["journal"] = publisher.strip()
         else:
-            details["missing_fields"].append("Source (Journal/Publisher Name)")
+            details["missing_fields"].append("Source Name")
 
         is_valid = len(details["missing_fields"]) == 0
         return is_valid, details
 
     def select_best_paper(self, candidates):
-        """Prioritizes journal articles, validates structure, and filters."""
         if not candidates:
             return None, None, ["No query results returned from database."]
             
@@ -339,9 +352,9 @@ def is_heading_or_topic(paragraph):
     return False
 
 
-# --- Core Web Interface Processing Logic ---
+# --- Core Processing Logic ---
 
-def process_uploaded_document(file_buffer, target_citations=50, progress_callback=None):
+def process_nepal_document(file_buffer, target_citations=50, progress_callback=None):
     engine = StrictAPA50CitationEngine()
     doc = Document(file_buffer)
     
@@ -388,7 +401,6 @@ def process_uploaded_document(file_buffer, target_citations=50, progress_callbac
                 citation_count += 1
                 keywords = engine.extract_keywords_from_sentence(s_text)
                 
-                # Report Progress back to UI
                 if progress_callback:
                     progress_callback(citation_count, num_to_cite, keywords)
                 
@@ -505,97 +517,119 @@ def process_uploaded_document(file_buffer, target_citations=50, progress_callbac
     return processed_paragraphs, sorted_reference_texts, verification_data, output_stream.getvalue()
 
 
-# --- Streamlit Frontend Design ---
+# --- STREAMLIT UI SEGMENTS ---
 
-st.title("🎓 Academic APA 7th Citation & Reference Web Engine")
-st.markdown("Automate academic, peer-reviewed citations focusing on the **Nepalese Agricultural and Public Policy Context**.")
+# SECTION 1: CITATION REMOVER
+if app_mode == "1. Citation Remover":
+    st.subheader("1. 🧹 Citation Remover")
+    st.info("Upload your document here to strip existing citations. Ready to receive your code!")
 
-# Keep results persistent during download re-runs
-if 'processed' not in st.session_state:
-    st.session_state.processed = False
-    st.session_state.processed_paragraphs = []
-    st.session_state.sorted_references = []
-    st.session_state.report = []
-    st.session_state.file_bytes = None
-    st.session_state.filename = ""
+# SECTION 2: NEPALESE CITATION GENERATOR
+elif app_mode == "2. Citation Generator (Nepalese Focus)":
+    st.subheader("2. 🇳🇵 Citation Generator (Nepalese Focus)")
+    st.markdown("Automate academic citations focusing strictly on the **Nepalese Agricultural and Public Policy Context**.")
 
-uploaded_file = st.file_uploader("Upload your Word Document (.docx)", type=["docx"])
-target_citations = st.slider("Target Number of Citations", min_value=5, max_value=100, value=50, step=5)
+    # Initialize State Keys specifically for the Nepalese Module
+    if 'nepal_processed' not in st.session_state:
+        st.session_state.nepal_processed = False
+        st.session_state.nepal_paragraphs = []
+        st.session_state.nepal_references = []
+        st.session_state.nepal_report = []
+        st.session_state.nepal_file_bytes = None
+        st.session_state.nepal_filename = ""
 
-if uploaded_file is not None:
-    if st.button("Process Document and Generate Citations"):
-        st.session_state.filename = "APA7_" + uploaded_file.name
+    uploaded_file = st.file_uploader("Upload your Word Document (.docx)", type=["docx"], key="nepal_uploader")
+    target_citations = st.slider("Target Number of Citations", min_value=5, max_value=100, value=50, step=5, key="nepal_slider")
+
+    if uploaded_file is not None:
+        if st.button("Generate Nepalese Citations", key="nepal_btn"):
+            st.session_state.nepal_filename = "APA7_Nepal_" + uploaded_file.name
+            
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            def update_nepal_ui_progress(current, total, query_term):
+                percent = int((current / total) * 100)
+                progress_bar.progress(percent)
+                status_text.text(f"Querying Nepalese context {current}/{total} for: '{query_term}'...")
+                
+            with st.spinner("Parsing document structure and detecting headings..."):
+                res = process_nepal_document(
+                    uploaded_file, 
+                    target_citations=target_citations, 
+                    progress_callback=update_nepal_ui_progress
+                )
+                
+            if res and res[0] is not None:
+                st.session_state.nepal_paragraphs, st.session_state.nepal_references, st.session_state.nepal_report, st.session_state.nepal_file_bytes = res
+                st.session_state.nepal_processed = True
+                st.success("Nepalese citations and reference sections compiled successfully!")
+            else:
+                st.error("No valid candidate sentences were found in the uploaded document.")
+
+    if st.session_state.nepal_processed:
+        st.markdown("---")
+        st.subheader("⬇️ Download Processed Document")
+        st.download_button(
+            label="Download Cited Document",
+            data=st.session_state.nepal_file_bytes,
+            file_name=st.session_state.nepal_filename,
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
         
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-        
-        def update_ui_progress(current, total, query_term):
-            percent = int((current / total) * 100)
-            progress_bar.progress(percent)
-            status_text.text(f"Resolving Citation {current}/{total} for keywords: '{query_term}'...")
-            
-        with st.spinner("Analyzing document structure..."):
-            res = process_uploaded_document(
-                uploaded_file, 
-                target_citations=target_citations, 
-                progress_callback=update_ui_progress
-            )
-            
-        if res and res[0] is not None:
-            st.session_state.processed_paragraphs, st.session_state.sorted_references, st.session_state.report, st.session_state.file_bytes = res
-            st.session_state.processed = True
-            st.success("Citations and reference sections successfully formulated!")
-        else:
-            st.error("No valid candidate sentences were found in the uploaded document.")
-
-if st.session_state.processed:
-    st.markdown("---")
-    # 1. Download Link
-    st.subheader("⬇️ Download Processed Document")
-    st.download_button(
-        label="Download Cited Word Document",
-        data=st.session_state.file_bytes,
-        file_name=st.session_state.filename,
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    )
-    
-    # 2. Document Preview Box
-    st.subheader("📄 Document Preview")
-    paper_preview_html = """
-    <div style="font-family: 'Times New Roman', Times, serif; font-size: 11pt; line-height: 2.0; color: #000; background-color: #ffffff; padding: 25px; border: 1px solid #cbd5e1; max-height: 400px; overflow-y: scroll; border-radius: 4px;">
-    """
-    for p_text in st.session_state.processed_paragraphs:
-        if p_text:
-            highlighted_text = re.sub(
-                r'\(([^)]+,\s*\d{4})\)', 
-                r'<span style="color: #1a73e8; font-weight: bold;">(\1)</span>', 
-                p_text
-            )
-            paper_preview_html += f"<p style='text-indent: 36pt; margin-bottom: 12pt;'>{highlighted_text}</p>"
-            
-    if st.session_state.sorted_references:
-        paper_preview_html += """
-            <h3 style="text-align: center; font-weight: bold; margin-top: 36pt; margin-bottom: 24pt;">References</h3>
+        st.subheader("📄 Document Preview")
+        paper_preview_html = """
+        <div style="font-family: 'Times New Roman', Times, serif; font-size: 11pt; line-height: 2.0; color: #000; background-color: #ffffff; padding: 25px; border: 1px solid #cbd5e1; max-height: 400px; overflow-y: scroll; border-radius: 4px;">
         """
-        for ref in st.session_state.sorted_references:
-            paper_preview_html += f'<p style="text-indent: -36pt; padding-left: 36pt; margin-bottom: 12pt; line-height: 2.0;">{ref}</p>'
-    paper_preview_html += "</div>"
-    st.markdown(paper_preview_html, unsafe_allow_html=True)
-    
-    # 3. Validation Checklist
-    st.subheader("🔍 Metadata Verification Checklist")
-    
-    for r in st.session_state.report:
-        color = "green" if r['status'] == "Passed Validation" else "red"
-        with st.expander(f"Citation #{r['id']}: Context: '{r['context'][:60]}...' — {r['status']}"):
-            st.markdown(f"**Keywords Queried:** `{r['keywords']}`")
-            st.markdown(f"**APA Title:** {r['title']}")
-            st.markdown(f"**APA Authors:** {r['author']}")
-            st.markdown(f"**APA Year:** {r['date']}")
-            st.markdown(f"**Journal/Publisher:** {r['journal']} ({r['type'].upper()})")
-            st.markdown(f"**DOI Link:** [{r['doi']}]({r['doi']})")
-            
-            if r['discard_logs']:
-                st.markdown("**Discarded Candidates Trail:**")
-                for log in r['discard_logs']:
-                    st.caption(f"⚠️ {log}")
+        for p_text in st.session_state.nepal_paragraphs:
+            if p_text:
+                highlighted_text = re.sub(
+                    r'\(([^)]+,\s*\d{4})\)', 
+                    r'<span style="color: #1a73e8; font-weight: bold;">(\1)</span>', 
+                    p_text
+                )
+                paper_preview_html += f"<p style='text-indent: 36pt; margin-bottom: 12pt;'>{highlighted_text}</p>"
+                
+        if st.session_state.nepal_references:
+            paper_preview_html += """
+                <h3 style="text-align: center; font-weight: bold; margin-top: 36pt; margin-bottom: 24pt;">References</h3>
+            """
+            for ref in st.session_state.nepal_references:
+                paper_preview_html += f'<p style="text-indent: -36pt; padding-left: 36pt; margin-bottom: 12pt; line-height: 2.0;">{ref}</p>'
+        paper_preview_html += "</div>"
+        st.markdown(paper_preview_html, unsafe_allow_html=True)
+        
+        st.subheader("🔍 Metadata Verification Checklist")
+        for r in st.session_state.nepal_report:
+            with st.expander(f"Citation #{r['id']}: Context: '{r['context'][:60]}...' — {r['status']}"):
+                st.markdown(f"**Keywords Queried:** `{r['keywords']}`")
+                st.markdown(f"**APA Title:** {r['title']}")
+                st.markdown(f"**APA Authors:** {r['author']}")
+                st.markdown(f"**APA Year:** {r['date']}")
+                st.markdown(f"**Journal/Publisher:** {r['journal']} ({r['type'].upper()})")
+                st.markdown(f"**DOI Link:** [{r['doi']}]({r['doi']})")
+                
+                if r['discard_logs']:
+                    st.markdown("**Discarded Candidates Trail:**")
+                    for log in r['discard_logs']:
+                        st.caption(f"⚠️ {log}")
+
+# SECTION 3: INTERNATIONAL CITATION GENERATOR
+elif app_mode == "3. Citation Generator (International Focus)":
+    st.subheader("3. 🌍 Citation Generator (International Focus)")
+    st.info("Upload your document to generate international citations. Ready to receive your code!")
+
+# SECTION 4: 50/50 MIXTURE GENERATOR
+elif app_mode == "4. 50/50 Context Mixture Generator":
+    st.subheader("4. ⚖️ 50/50 Context Mixture Generator")
+    st.info("Upload your document to generate a split of Nepalese and International citations. Ready to receive your code!")
+
+# SECTION 5: PLAGIARISM REMOVER
+elif app_mode == "5. Plagiarism Remover":
+    st.subheader("5. 🛡️ Plagiarism Remover")
+    st.info("Upload your document to rewrite and remove plagiarism. Ready to receive your code!")
+
+# SECTION 6: PLAGIARISM & AI CHECKER
+elif app_mode == "6. Plagiarism & AI Checker":
+    st.subheader("6. 🤖 Plagiarism & AI Checker")
+    st.info("Upload your document to check for AI and plagiarism patterns. Ready to receive your code!")
