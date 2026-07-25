@@ -1,4 +1,4 @@
-name: Keep Bee App Awake
+name: Keep Citation App Awake
 
 on:
   schedule:
